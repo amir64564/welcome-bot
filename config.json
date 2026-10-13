@@ -1,0 +1,47 @@
+{
+  "welcomeChannelId": "1559424478805491742",
+  "message": "Welcome {user_mention}!\n\nWelcome to **{server_name}**. You are member #{member_count}. Make sure to check out the server channels and follow the rules.\n\nEnjoy your stay! 🎉",
+  "serverName": "",
+  "image": {
+    "enabled": true,
+    "background": "assets/template.png",
+    "fallbackBackground": "assets/background.png",
+    "template": {
+      "avatar": {
+        "x": 836,
+        "y": 246,
+        "r": 138,
+        "placeholderColor": "#5865F2"
+      },
+      "name": {
+        "x": 836,
+        "y": 592,
+        "maxWidth": 780,
+        "fontSize": 92,
+        "minFontSize": 44,
+        "color": "#FBC848",
+        "font": "WelcomeSerif, serif",
+        "fontWeight": "bold"
+      },
+      "count": {
+        "x": 858,
+        "y": 816,
+        "fontSize": 36,
+        "color": "#F6F5FA",
+        "font": "WelcomeMono, monospace",
+        "maxWidth": 160
+      }
+    },
+    "showAvatar": true,
+    "showName": true,
+    "title": "WELCOME",
+    "subtitle": "to {server_name} • member #{member_count}",
+    "colors": {
+      "title": "#FFFFFF",
+      "name": "#FFD166",
+      "subtitle": "#D0D4E8",
+      "avatarRing": "#FFD166"
+    },
+    "font": "sans-serif"
+  }
+}
