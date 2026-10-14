@@ -5,4 +5,4 @@ g.addColorStop(0,'#ff6b6b');g.addColorStop(.5,'#feca57');g.addColorStop(1,'#48db
 x.fillStyle='#ffe0bd';x.beginPath();x.arc(128,110,55,0,7);x.fill();x.beginPath();x.arc(128,260,95,0,7);x.fill();
 x.fillStyle='#222';x.beginPath();x.arc(108,105,7,0,7);x.arc(148,105,7,0,7);x.fill();return c.toBuffer('image/png');};
 (async()=>{const cfg=loadConfig();for(const [f,n] of [['sample-welcome.png','Amir'],['sample-welcome-long.png','Alexander The Extremely Long Display Name Collector 🎨']])
-fs.writeFileSync(path.join(__dirname,'..',f),await renderWelcome({displayName:n,memberCount:1234,avatarUrls:['x'],config:cfg.image,fetcher}));console.log('ok')})();
+fs.writeFileSync(path.join(__dirname,'..',f),await renderWelcome({displayName:n,memberCount:1234,avatarUrls:['x'],config:{...cfg.image,subtitle:cfg.image.subtitle.replace('{server_name}','My Server')},fetcher}));console.log('ok')})();

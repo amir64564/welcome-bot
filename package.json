@@ -1,7 +1,7 @@
 {
   "name": "welcome-bot",
   "version": "1.0.0",
-  "description": "",
+  "description": "Reusable Discord welcome bot: AI custom art or template image + custom message",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

@@ -14,7 +14,7 @@ function mkChannel(perms = ALL) {
 function mkMember(id, ch, name = 'Rudra The Very Long Display Name That Should Be Truncated Nicely') {
   return { id, displayName: name, user: { username: 'rudra_' + id, bot: false, defaultAvatarURL: 'https://cdn.discordapp.com/embed/avatars/0.png' },
     displayAvatarURL: () => `https://cdn.discordapp.com/avatars/${id}/x.png?size=256`,
-    guild: { id: 'g1', name: 'Exquisite', memberCount: 1234, members: { me: {} },
+    guild: { id: 'g1', name: 'Test Server', memberCount: 1234, members: { me: {} },
       channels: { cache: new Map([[ch.id, ch]]), fetch: async () => null } } };
 }
 const avatarFetcher = async () => { const c = createCanvas(256, 256); const x = c.getContext('2d'); x.fillStyle = '#e11d48'; x.fillRect(0, 0, 256, 256); return c.toBuffer('image/png'); };
@@ -27,7 +27,7 @@ let pass = 0; const t = async (n, f) => { await f(); pass++; console.log('✔', 
   await t('mention + placeholders', async () => {
     const ch = mkChannel(); const r = await handleJoin(mkMember('111', ch), cfg, { logger: quiet, fetcher: avatarFetcher, ...aiNull });
     assert(r.sent); assert.strictEqual(r.imageKind, 'template'); const p = ch.sent[0];
-    assert(p.content.startsWith('Welcome <@111>!')); assert(p.content.includes('**Exquisite**')); assert(p.content.includes('#1234'));
+    assert(p.content.startsWith('Welcome <@111>!')); assert(p.content.includes('**Test Server**')); assert(p.content.includes('#1234'));
     assert(!/\{\w+\}/.test(p.content)); assert.deepStrictEqual(p.allowedMentions.users, ['111']);
     assert.strictEqual(p.files[0].name, 'welcome.png');
     const buf = p.files[0].attachment; assert(buf.subarray(1, 4).toString() === 'PNG');

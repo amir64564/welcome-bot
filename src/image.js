@@ -60,6 +60,13 @@ async function renderTemplate(opts, bgPath, fetcher) {
     ctx.fillText(truncate(ctx, opts.displayName, n.maxWidth), n.x, n.y);
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
   }
+  const st = t.subtitle;
+  if (st && opts.config.subtitle) {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = st.color || '#F6F6FA';
+    let size = st.fontSize || 40; const setF = () => { ctx.font = `${size}px ${st.font || 'WelcomeMono, monospace'}`; }; setF();
+    while (size > 20 && ctx.measureText(opts.config.subtitle).width > (st.maxWidth || 900)) { size -= 2; setF(); }
+    ctx.fillText(opts.config.subtitle, st.x, st.y);
+  }
   const c = t.count;
   if (c && opts.memberCount != null) {
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = c.color || '#F6F5FA';

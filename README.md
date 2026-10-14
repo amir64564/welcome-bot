@@ -1,4 +1,4 @@
-# Exquisite Welcome Bot
+# Welcome Bot
 
 When someone joins your server, the bot posts a welcome message with an image in your welcome channel.
 
@@ -10,8 +10,8 @@ When someone joins your server, the bot posts a welcome message with an image in
 ## Quick start (Hinglish)
 
 ```bash
-git clone https://github.com/amir64564/exquisite-welcome-bot.git
-cd exquisite-welcome-bot
+git clone https://github.com/amir64564/welcome-bot.git
+cd welcome-bot
 npm install
 cp .env.example .env      # ab .env kholo aur values bharo
 npm start
@@ -37,7 +37,7 @@ Node.js 18+ chahiye. Ek hi jagah bot chalao, warna har join pe do welcome aayeng
 | `preview` | Shows the welcome only to you, using the same AI → template flow |
 | `show` | Shows current settings |
 
-Example message: `Hey {user_mention} Welcome To EXQUISITE.\nThe World Of Art 🎨 & Collection 🖼️`
+Example message: `Hey {user_mention} Welcome to {server_name}!\nEnjoy your stay 🎉`
 
 ## AI providers (`.env`)
 
@@ -52,7 +52,7 @@ Test AI alone: `node ai/scene-edit.js path/to/avatar.png out.png`
 - **Scene image:** replace `ai/scene.jpg`. Then set in `config.json` → `ai`:
   - `crop` – a square area (x, y, w, h in pixels) that contains the seesaw character; this part is sent to Cloudflare and blended back.
   - `box` – the tight box around the character (used with OpenRouter full-scene edits).
-- **Template:** replace `assets/template.png`; avatar/name/member-number positions, colours and font sizes are in `config.json` → `image.template`. Text printed inside the picture (like "Welcome to Exquisite Agents") is part of the image, edit the image to change it.
+- **Template:** replace `assets/template.png`; avatar/name/member-number positions, colours and font sizes are in `config.json` → `image.template`. The line under your name is drawn from `image.subtitle` (default `Welcome to {server_name}`); its position/font/colour are in `image.template.subtitle`.
 - **Message:** `/welcome-config set-message` (or `message` in `config.json`).
 
 ## Dev
