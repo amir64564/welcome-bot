@@ -43,5 +43,23 @@
       "avatarRing": "#FFD166"
     },
     "font": "sans-serif"
+  },
+  "ai": {
+    "enabled": true,
+    "dailyLimit": 0,
+    "scene": "ai/scene.jpg",
+    "crop": {
+      "x": 684,
+      "y": 0,
+      "w": 512,
+      "h": 512
+    },
+    "box": {
+      "x": 815,
+      "y": 85,
+      "w": 250,
+      "h": 265
+    },
+    "timeoutMs": 25000
   }
 }

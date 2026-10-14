@@ -1,5 +1,5 @@
 const { PermissionFlagsBits, ChannelType, AttachmentBuilder } = require('discord.js');
-const { renderWelcome } = require('./image');
+const { buildWelcomeImage } = require('./welcome-image');
 
 const DEDUPE_MS = 60_000;
 const recent = new Map(); // guildId:userId -> timestamp
@@ -20,6 +20,12 @@ function fill(template, member, serverName) {
     member_count: String(member.guild.memberCount ?? ''),
   };
   return String(template || '').replace(/\{(\w+)\}/g, (m, k) => (k in vals ? vals[k] : m));
+}
+
+function imageOpts(member, cfg, serverName) {
+  return { displayName: member.displayName, memberCount: member.guild.memberCount, serverName,
+    avatarUrls: [member.displayAvatarURL({ extension: 'png', size: 256 }), member.user.defaultAvatarURL],
+    config: { ...cfg.image, title: fill(cfg.image.title, member, serverName), subtitle: fill(cfg.image.subtitle, member, serverName) } };
 }
 
 async function handleJoin(member, cfg, deps = {}) {
@@ -48,23 +54,16 @@ async function handleJoin(member, cfg, deps = {}) {
       content: fill(cfg.message, member, serverName),
       allowedMentions: { users: [member.id], roles: [], parse: [] },
     };
+    let imageKind = null;
     if (cfg.image?.enabled && canAttach) {
-      try {
-        const png = await (deps.render || renderWelcome)({
-          displayName: member.displayName, memberCount: member.guild.memberCount,
-          serverName,
-          avatarUrls: [member.displayAvatarURL({ extension: 'png', size: 256 }), member.user.defaultAvatarURL],
-          config: { ...cfg.image, title: fill(cfg.image.title, member, serverName), subtitle: fill(cfg.image.subtitle, member, serverName) },
-          fetcher: deps.fetcher,
-        });
-        payload.files = [new AttachmentBuilder(png, { name: 'welcome.png' })];
-      } catch (e) { log.error(`[welcome] Image render failed (${e.message}); sending text only.`); }
+      const img = await buildWelcomeImage(imageOpts(member, cfg, serverName), cfg, deps);
+      if (img) { payload.files = [new AttachmentBuilder(img.png, { name: 'welcome.png' })]; imageKind = img.kind; }
     }
     await channel.send(payload);
-    return { sent: true, payload };
+    return { sent: true, payload, imageKind };
   } catch (e) {
     log.error(`[welcome] Failed to welcome ${member?.id}: ${e.message}`);
     return { error: e.message };
   }
 }
-module.exports = { handleJoin, fill, isDuplicate, _recent: recent, DEDUPE_MS };
+module.exports = { handleJoin, fill, imageOpts, isDuplicate, _recent: recent, DEDUPE_MS };

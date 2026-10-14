@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "test": "node test/test.js",
-    "check": "for f in src/*.js scripts/*.js test/*.js; do node --check $f || exit 1; done && echo all-ok",
+    "check": "for f in src/*.js ai/*.js scripts/*.js test/*.js; do node --check $f || exit 1; done && echo all-ok",
     "make-background": "node scripts/make-background.js"
   },
   "keywords": [],

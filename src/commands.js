@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags, AttachmentBuilder } = require('discord.js');
 const { loadConfig, saveConfig } = require('./config');
-const { fill } = require('./welcome');
-const { renderWelcome } = require('./image');
+const { fill, imageOpts } = require('./welcome');
+const { buildWelcomeImage } = require('./welcome-image');
 
 const command = new SlashCommandBuilder()
   .setName('welcome-config').setDescription('Configure the welcome message (admins only)')
@@ -13,6 +13,9 @@ const command = new SlashCommandBuilder()
     .addStringOption(o => o.setName('text').setDescription('Placeholders: {user_mention} {username} {display_name} {server_name} {member_count}').setRequired(true).setMaxLength(1900)))
   .addSubcommand(s => s.setName('image').setDescription('Turn welcome image on/off')
     .addBooleanOption(o => o.setName('enabled').setDescription('On or off').setRequired(true)))
+  .addSubcommand(s => s.setName('ai').setDescription('Turn AI custom art (member as seesaw character) on/off')
+    .addBooleanOption(o => o.setName('enabled').setDescription('On or off').setRequired(true))
+    .addIntegerOption(o => o.setName('daily-limit').setDescription('Max AI images per day, 0 = unlimited').setMinValue(0)))
   .addSubcommand(s => s.setName('preview').setDescription('Preview the welcome (only you see it)'))
   .addSubcommand(s => s.setName('show').setDescription('Show current settings (only you see it)'));
 
@@ -27,6 +30,11 @@ async function handleInteraction(i) {
     if (sub === 'set-channel') { cfg.welcomeChannelId = i.options.getChannel('channel').id; saveConfig(cfg); return i.reply({ content: `Welcome channel set to <#${cfg.welcomeChannelId}>.`, ...eph }); }
     if (sub === 'set-message') { cfg.message = i.options.getString('text').replace(/\\n/g, '\n'); saveConfig(cfg); return i.reply({ content: 'Welcome message updated.', ...eph }); }
     if (sub === 'image') { cfg.image.enabled = i.options.getBoolean('enabled'); saveConfig(cfg); return i.reply({ content: `Welcome image ${cfg.image.enabled ? 'enabled' : 'disabled'}.`, ...eph }); }
+    if (sub === 'ai') {
+      cfg.ai.enabled = i.options.getBoolean('enabled'); const lim = i.options.getInteger('daily-limit');
+      if (lim !== null) cfg.ai.dailyLimit = lim; saveConfig(cfg);
+      return i.reply({ content: `AI art ${cfg.ai.enabled ? 'enabled' : 'disabled'} (daily limit: ${cfg.ai.dailyLimit || 'unlimited'}). If AI fails, the template is used.`, ...eph });
+    }
     if (sub === 'show') return i.reply({ content: '```json\n' + JSON.stringify(cfg, null, 2).slice(0, 1800) + '\n```', ...eph });
     if (sub === 'preview') {
       await i.deferReply(eph);
@@ -34,12 +42,9 @@ async function handleInteraction(i) {
       const serverName = cfg.serverName || i.guild.name;
       const payload = { content: fill(cfg.message, member, serverName), allowedMentions: { parse: [] } };
       if (cfg.image.enabled) {
-        try {
-          const png = await renderWelcome({ displayName: member.displayName, memberCount: member.guild.memberCount, serverName,
-            avatarUrls: [member.displayAvatarURL({ extension: 'png', size: 256 }), member.user.defaultAvatarURL],
-            config: { ...cfg.image, title: fill(cfg.image.title, member, serverName), subtitle: fill(cfg.image.subtitle, member, serverName) } });
-          payload.files = [new AttachmentBuilder(png, { name: 'welcome.png' })];
-        } catch (e) { payload.content += `\n\n(image render failed: ${e.message})`; }
+        const img = await buildWelcomeImage(imageOpts(member, cfg, serverName), cfg);
+        if (img) { payload.files = [new AttachmentBuilder(img.png, { name: 'welcome.png' })]; payload.content += `\n\n_(image: ${img.kind === 'ai' ? 'AI art' : 'template fallback'})_`; }
+        else payload.content += '\n\n(image failed; text only)';
       }
       return i.editReply(payload);
     }

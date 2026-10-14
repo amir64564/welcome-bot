@@ -1,88 +1,60 @@
-# Welcome Bot (welcome-only)
+# Exquisite Welcome Bot
 
-Does exactly one thing: when a member **joins**, it posts your configured welcome note in your welcome channel, mentions them, and attaches a template-rendered welcome image (optional). No moderation, XP, giveaways, roles, tickets or background tasks. Nothing is sent on startup or to existing members.
+When someone joins your server, the bot posts a welcome message with an image in your welcome channel.
 
-## 1. Discord Developer Portal
-1. https://discord.com/developers/applications → **New Application**.
-2. **Bot** tab → *Reset Token* → copy token (keep it secret).
-3. Bot tab → **Privileged Gateway Intents** → enable **Server Members Intent** → Save.
-4. Copy **Application ID** (General Information) for the invite URL.
+**Image order:**
+1. **AI art** – the character on the seesaw in `ai/scene.jpg` is replaced by a cute chibi clay-toy version of the new member's profile picture. Monsters and background stay the same. (See `ai/example-output.png`.)
+2. **Template** – if AI is off, fails, takes longer than 25s, or the daily limit/free quota is used up, the purple template (`assets/template.png`) is used automatically.
+3. **Text only** – if both images fail, the text welcome is still sent.
 
-## 2. Install
+## Quick start (Hinglish)
+
 ```bash
+git clone https://github.com/amir64564/exquisite-welcome-bot.git
+cd exquisite-welcome-bot
 npm install
-cp .env.example .env     # put DISCORD_TOKEN=... (CLIENT_ID optional)
+cp .env.example .env      # ab .env kholo aur values bharo
+npm start
 ```
 
-## 3. config.json
-| Field | Meaning |
+1. `.env` mein `DISCORD_TOKEN` aur `CLIENT_ID` daalo (Developer Portal se).
+2. AI art chahiye to Cloudflare (`CF_ACCOUNT_ID`, `CF_API_TOKEN`) ya OpenRouter (`AI_PROVIDER=openrouter`, `OPENROUTER_API_KEY`) daalo. Kuch nahi daala to sirf template chalega.
+3. Developer Portal > Bot > Privileged Gateway Intents mein **Server Members Intent** ON karo (warna join event nahi aayega).
+4. Bot ko server mein add karo is link se (CLIENT_ID apna daalo):
+   `https://discord.com/oauth2/authorize?client_id=CLIENT_ID&permissions=51200&scope=bot%20applications.commands`
+5. Server mein `/welcome-config set-channel` se welcome channel chuno, phir `/welcome-config preview` se test karo.
+
+Node.js 18+ chahiye. Ek hi jagah bot chalao, warna har join pe do welcome aayenge.
+
+## Commands (`/welcome-config`, Manage Server needed)
+
+| Command | What it does |
 |---|---|
-| `welcomeChannelId` | ID of welcome channel (Developer Mode → right-click channel → Copy ID) |
-| `message` | Welcome text. Discord markdown, emojis, `\n` newlines. Placeholders: `{user_mention}` `{username}` `{display_name}` `{server_name}` `{member_count}` |
-| `serverName` | Branding name; empty = actual server name |
-| `image.enabled` | `true`/`false` |
-| `image.background` | Template PNG; canvas uses its native size. Default `assets/template.png` (Exquisite Agents design, 1672×941, placeholders removed) |
-| `image.fallbackBackground` | Used with the old 1024×450 layout if the template file is missing. `assets/background.png` (`npm run make-background`) |
-| `image.template.avatar` | `{x, y, r}` avatar circle in template pixels (default 836, 246, 138) |
-| `image.template.name` | `{x, y, maxWidth, fontSize, minFontSize, color, font}` name centered here, auto-shrinks then truncates |
-| `image.template.count` | `{x, y, fontSize, color, font}` member number drawn left-aligned after "MEMBER #" (baseline y) |
-| Remove `image.template` | to use the old generated layout instead |
-| `image.showAvatar` / `image.showName` | Show avatar circle / display name |
-| `image.title` / `image.subtitle` | Text on image (placeholders allowed) |
-| `image.colors` | `title`, `name`, `subtitle`, `avatarRing` hex colors |
-| `image.font` | CSS font family (must be installed on the host) |
+| `set-channel` | Choose the welcome channel |
+| `set-message` | Change the welcome text. Placeholders: `{user_mention}` `{username}` `{display_name}` `{server_name}` `{member_count}`. Use `\n` for a new line |
+| `image enabled:` | Turn the welcome image on/off |
+| `ai enabled: [daily-limit:]` | Turn AI art on/off; optional max AI images per day (0 = unlimited) |
+| `preview` | Shows the welcome only to you, using the same AI → template flow |
+| `show` | Shows current settings |
 
-Config is re-read on every join, so edits apply without restart.
-Admins (Manage Server/Administrator) can also use `/welcome-config set-channel | set-message | image | preview | show`. Preview/show are ephemeral (only the admin sees them).
+Example message: `Hey {user_mention} Welcome To EXQUISITE.\nThe World Of Art 🎨 & Collection 🖼️`
 
-## 4. Invite URL
-Permissions: View Channels (1024) + Send Messages (2048) + Embed Links (16384) + Attach Files (32768) = **51200**.
-```
-https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=51200&scope=bot%20applications.commands
-```
+## AI providers (`.env`)
 
-## 5. Run
-```bash
-npm start      # run bot
-npm test       # offline tests with mocks
-node scripts/samples.js   # writes sample-welcome.png and sample-welcome-long.png
-npm run check  # node --check all files
-```
+- `AI_PROVIDER=cloudflare` – Cloudflare Workers AI. Free ~7-8 images/day (resets 5:30 AM IST), then about ₹1/image with billing. Model `CF_IMAGE_MODEL`, quality `CF_STEPS`.
+- `AI_PROVIDER=openrouter` – needs credits. `OPENROUTER_MODEL=google/gemini-2.5-flash-image` (best) or `openai/gpt-5-image-mini` (cheaper).
+- `AI_PROVIDER=off` – always use the template.
 
-## 6. Deploy on your VPS (always-on)
-**pm2**
-```bash
-npm i -g pm2
-pm2 start src/index.js --name welcome-bot
-pm2 save && pm2 startup
-pm2 logs welcome-bot
-```
-**systemd** (`/etc/systemd/system/welcome-bot.service`)
-```ini
-[Unit]
-Description=Discord Welcome Bot
-After=network-online.target
-[Service]
-WorkingDirectory=/opt/welcome-bot
-ExecStart=/usr/bin/node src/index.js
-Restart=always
-User=welcomebot
-[Install]
-WantedBy=multi-user.target
-```
-`sudo systemctl daemon-reload && sudo systemctl enable --now welcome-bot`, logs: `journalctl -u welcome-bot -f`.
-Requires Node 18+. @napi-rs/canvas ships prebuilt binaries (no system libs needed).
+Test AI alone: `node ai/scene-edit.js path/to/avatar.png out.png`
 
-## 7. Maintenance
-- Update deps: `npm update`, then `npm test`.
-- Token leaked? Reset in Developer Portal, update `.env`, restart.
-- Warnings like `Missing permissions in #channel` → fix channel permissions for the bot role.
+## Customising
 
-## 8. Live test checklist
-- [ ] Bot online, `/welcome-config set-channel` done, `/welcome-config preview` looks right.
-- [ ] Join with an alt account → message appears in welcome channel.
-- [ ] Alt is mentioned correctly (blue mention, pinged); nobody else pinged.
-- [ ] Note text matches config; image shows alt's avatar + name.
-- [ ] Set `image.background` to a bad path / remove AttachFiles → text still sends.
-- [ ] Restart bot → no messages to existing members.
-- [ ] Leave & rejoin quickly (<60s) → only one welcome.
+- **Scene image:** replace `ai/scene.jpg`. Then set in `config.json` → `ai`:
+  - `crop` – a square area (x, y, w, h in pixels) that contains the seesaw character; this part is sent to Cloudflare and blended back.
+  - `box` – the tight box around the character (used with OpenRouter full-scene edits).
+- **Template:** replace `assets/template.png`; avatar/name/member-number positions, colours and font sizes are in `config.json` → `image.template`. Text printed inside the picture (like "Welcome to Exquisite Agents") is part of the image, edit the image to change it.
+- **Message:** `/welcome-config set-message` (or `message` in `config.json`).
+
+## Dev
+
+`npm test` (offline, AI is mocked) and `npm run check`.

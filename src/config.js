@@ -5,6 +5,7 @@ const DEFAULTS = {
   welcomeChannelId: '',
   message: 'Welcome {user_mention}!\n\nWelcome to **{server_name}**. You are member #{member_count}. Check out the channels and follow the rules.\n\nEnjoy your stay! 🎉',
   serverName: '',
+  ai: { enabled: true, dailyLimit: 0, scene: 'ai/scene.jpg', crop: { x: 684, y: 0, w: 512, h: 512 }, box: { x: 815, y: 85, w: 250, h: 265 }, timeoutMs: 25000 },
   image: {
     enabled: true, background: 'assets/template.png', fallbackBackground: 'assets/background.png',
     template: {"avatar": {"x": 836, "y": 246, "r": 138, "placeholderColor": "#5865F2"}, "name": {"x": 836, "y": 592, "maxWidth": 780, "fontSize": 92, "minFontSize": 44, "color": "#FBC848", "font": "WelcomeSerif, serif", "fontWeight": "bold"}, "count": {"x": 858, "y": 816, "fontSize": 36, "color": "#F6F5FA", "font": "WelcomeMono, monospace", "maxWidth": 160}}, showAvatar: true, showName: true,
