@@ -39,9 +39,28 @@ async function cfRun(model, body, o) {
   if (!r.ok) { const t = (await r.text()).slice(0, 200); console.warn('[ai] cloudflare', r.status, t); return { err: /flagged|3030/.test(t) ? 'flagged' : (r.status === 429 || /neuron|quota|limit/i.test(t)) ? 'quota' : 'error' }; }
   return { json: await r.json() };
 }
-async function caption(av) { // text description of the avatar (used on retry so a real photo is not sent again)
-  const { json } = await cfRun('@cf/llava-hf/llava-1.5-7b-hf', JSON.stringify({ image: [...av], max_tokens: 60,
-    prompt: 'Describe this person or character in one short line for a toy designer: hair style and color, skin tone, glasses, outfit colors, accessories. No names, no intro.' }), { timeoutMs: 7000 }).catch(() => ({}));
+const COLORS = ['black','white','grey','gray','silver','red','pink','orange','yellow','blonde','gold','golden','brown','beige','tan','green','teal','turquoise','blue','navy','purple','violet','lavender'];
+const HUMAN = ['man','woman','boy','girl','person','guy','lady','child','kid','human','people','men','women'];
+const KINDS = ['horse','pony','unicorn','cat','kitten','dog','puppy','squid','octopus','fish','bird','duck','bear','fox','wolf','rabbit','bunny','monkey','frog','dragon','robot','skull','car','logo','tiger','lion','panda','penguin','shark','alien','monster','pig','cow','sheep','goat','deer','owl'];
+const SYN = { gray: 'grey', silver: 'grey', blonde: 'yellow', gold: 'yellow', golden: 'yellow', tan: 'brown', beige: 'brown', navy: 'blue', teal: 'blue', turquoise: 'blue', violet: 'purple', lavender: 'purple', pony: 'horse', unicorn: 'horse', kitten: 'cat', puppy: 'dog', bunny: 'rabbit', octopus: 'squid', men: 'man', women: 'woman' };
+function attrs(text) {
+  const w = String(text).toLowerCase().match(/[a-z]+/g) || []; const n = x => SYN[x] || x;
+  return { colors: new Set(w.filter(x => COLORS.includes(x)).map(n)), human: w.some(x => HUMAN.includes(x)),
+    kinds: new Set(w.filter(x => KINDS.includes(x)).map(n)), glasses: w.some(x => /^(glasses|spectacles|sunglasses|goggles)$/.test(x)) };
+}
+// Compare avatar caption with a caption of the generated character. Returns { ok, why }.
+function matchVerdict(avDesc, charDesc) {
+  if (!avDesc) return { ok: true, why: 'no avatar caption (skipped)' };
+  if (!charDesc) return { ok: true, why: 'no character caption (skipped)' };
+  const a = attrs(avDesc), c = attrs(charDesc); const why = [];
+  if (a.kinds.size && ![...a.kinds].some(k => c.kinds.has(k))) why.push(`type ${[...a.kinds]} missing`);
+  if (!a.kinds.size && a.human && c.kinds.size && !c.human) why.push(`expected person, got ${[...c.kinds]}`);
+  if (a.colors.size && ![...a.colors].some(k => c.colors.has(k))) why.push(`no shared colour (${[...a.colors]} vs ${[...c.colors]})`);
+  if (a.glasses && !c.glasses) why.push('glasses missing');
+  return { ok: why.length === 0, why: why.join('; ') || 'attributes match' };
+}
+async function caption(av, prompt = 'Describe this avatar in one short line: what it is (person, or which animal/object), hair or fur color, skin tone, glasses, outfit colors, accessories. No names, no intro.') {
+  const { json } = await cfRun('@cf/llava-hf/llava-1.5-7b-hf', JSON.stringify({ image: [...av], max_tokens: 60, prompt }), { timeoutMs: 7000 }).catch(() => ({}));
   return (json?.result?.description || '').replace(/\s+/g, ' ').trim().slice(0, 220);
 }
 async function cloudflare(sceneBuf, avBuf, o) {
@@ -66,9 +85,21 @@ async function cloudflare(sceneBuf, avBuf, o) {
     const raw = Buffer.from(b64, 'base64'); save(`raw-${attempt}.png`, raw);
     const chk = await sanity(crop, raw, o); // vs ORIGINAL crop: outside must match, inside must differ from old girl
     console.log(`[ai] attempt ${attempt}: outside-diff ${chk.outside.toFixed(1)} inside-diff ${chk.inside.toFixed(1)} -> ${chk.ok ? 'ok' : 'rejected'}`);
-    if (chk.ok) return composite(sceneBuf, { crop: raw }, o);
+    if (!chk.ok) continue;
+    const cc = await charCrop(raw, o); const cdesc = await caption(cc, 'Describe the character in the middle in one short line: what it is (person or animal type), hair or fur color, outfit colors, glasses, accessories. No intro.');
+    const v = matchVerdict(desc, cdesc);
+    console.log(`[ai] attempt ${attempt}: match check -> ${v.ok ? 'MATCH' : 'NO MATCH'} (${v.why}) | character: ${cdesc || '(none)'}`);
+    if (v.ok) return composite(sceneBuf, { crop: raw }, o);
   }
   return null;
+}
+
+// Crop the character area (mask bounding box) from a 512 edit, for the match check.
+async function charCrop(buf, o) {
+  const { data: m } = await maskData(o); let x0 = 512, y0 = 512, x1 = 0, y1 = 0;
+  for (let i = 0; i < m.length; i += 4) if (m[i] > 128) { const p = i / 4, x = p % 512, y = (p / 512) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  const im = await loadImage(buf); const c = createCanvas(x1 - x0, y1 - y0);
+  c.getContext('2d').drawImage(im, x0, y0, x1 - x0, y1 - y0, 0, 0, x1 - x0, y1 - y0); return c.toBuffer('image/png');
 }
 
 // Replace the masked character area with a heavy blur of the surroundings (removes the old girl).
@@ -160,7 +191,7 @@ async function sceneEdit(avatarBuf, cfg = {}) {
     if (res) save('final.png', res); return res;
   } catch (e) { console.warn('[ai]', e.message); return null; } finally { clearTimeout(timer); }
 }
-module.exports = { sceneEdit, provider };
+module.exports = { sceneEdit, provider, matchVerdict };
 
 // CLI test: node ai/scene-edit.js <avatar file or url> [out.png]
 if (require.main === module) (async () => {

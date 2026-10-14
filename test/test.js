@@ -87,5 +87,14 @@ let pass = 0; const t = async (n, f) => { await f(); pass++; console.log('✔', 
   await t('real sceneEdit with no provider -> null quickly', async () => {
     assert.strictEqual(await require('../ai/scene-edit').sceneEdit(Buffer.from('x')), null);
   });
-  console.log(`\n${pass}/14 tests passed. template size verified.`);
+  await t('match check verdicts', async () => {
+    const { matchVerdict: mv } = require('../ai/scene-edit');
+    assert(mv('White horse with blonde mane and tail.', 'A cute white pony with a yellow mane').ok);
+    assert(!mv('White horse with blonde mane and tail.', 'A girl with black hair in a teal kimono').ok);
+    assert(mv('A blue haired man with glasses and a gray hoodie.', 'A boy with blue hair, black glasses and a grey hoodie').ok);
+    assert(!mv('A blue haired man with glasses and a gray hoodie.', 'A boy with blue hair and a grey hoodie').ok);
+    assert(!mv('A pink squid wearing a light blue hoodie', 'A girl with black hair and a flower crown, brown dress').ok);
+    assert(mv('', 'anything').ok);
+  });
+  console.log(`\n${pass}/15 tests passed. template size verified.`);
 })().catch(e => { console.error('FAIL', e); process.exit(1); });
