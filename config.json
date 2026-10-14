@@ -56,6 +56,7 @@
     "enabled": true,
     "dailyLimit": 0,
     "scene": "ai/scene.jpg",
+    "mask": "ai/mask.png",
     "crop": {
       "x": 684,
       "y": 0,
@@ -68,6 +69,6 @@
       "w": 250,
       "h": 265
     },
-    "timeoutMs": 25000
+    "timeoutMs": 35000
   }
 }

@@ -4,3 +4,4 @@ node_modules/
 bot.log
 *.log
 ai/test-out.png
+ai/last/

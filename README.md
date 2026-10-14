@@ -47,10 +47,13 @@ Example message: `Hey {user_mention} Welcome to {server_name}!\nEnjoy your stay 
 
 Test AI alone: `node ai/scene-edit.js path/to/avatar.png out.png`
 
+Debug: the last 20 AI inputs/raw outputs/finals are saved in `ai/last/` (not committed). The log shows the avatar caption and a sanity check per attempt; bad or flagged results are retried once, then the template is used.
+
 ## Customising
 
 - **Scene image:** replace `ai/scene.jpg`. Then set in `config.json` → `ai`:
   - `crop` – a square area (x, y, w, h in pixels) that contains the seesaw character; this part is sent to Cloudflare and blended back.
+  - `mask` – `ai/mask.png` (512×512, same area as `crop`): white = character area that gets replaced (soft edges). Everything outside stays original pixels.
   - `box` – the tight box around the character (used with OpenRouter full-scene edits).
 - **Template:** replace `assets/template.png`; avatar/name/member-number positions, colours and font sizes are in `config.json` → `image.template`. The line under your name is drawn from `image.subtitle` (default `Welcome to {server_name}`); its position/font/colour are in `image.template.subtitle`.
 - **Message:** `/welcome-config set-message` (or `message` in `config.json`).
